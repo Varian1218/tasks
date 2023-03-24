@@ -15,29 +15,17 @@ namespace Tasks
 
         public static ITask<T> Timeout<T>(this ITask<T> task, TimeoutData<T> data)
         {
-            async Task<T> Delay()
-            {
-                await Task.Delay(data.Time);
-                return data.Result;
-            }
-
             return WaitAny(
                 task,
-                WrapTask(Delay())
+                Wait(Wait(data.Time), data.Result)
             );
         }
 
-        public static ITask<T> Timeout<T>(this ITask<T> task, TimeoutData<T> data, Func<TimeSpan, bool> step)
+        public static ITask<T> Timeout<T>(this ITask<T> task, TimeoutData<T> data, Action<Func<TimeSpan, bool>> step)
         {
-            async Task<T> Delay()
-            {
-                await Task.Delay(data.Time);
-                return data.Result;
-            }
-        
             return WaitAny(
                 task,
-                WrapTask(Delay())
+                Wait(Wait(data.Time, step), data.Result)
             );
         }
 
@@ -51,6 +39,14 @@ namespace Tasks
                 return true;
             });
             return new AwaiterTask(awaiter);
+        }
+
+        public static ITask<T> Wait<T>(ITask task, T v)
+        {
+            var awaiter = new Awaiter<T>();
+            if (task.GetAwaiter().IsCompleted) awaiter.Complete(v);
+            else task.GetAwaiter().OnCompleted(() => awaiter.Complete(v));
+            return new AwaiterTask<T>(awaiter);
         }
 
         public static ITask<bool> Wait<T>(ITask<T> task, T v)
