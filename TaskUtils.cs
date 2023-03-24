@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace Tasks
 {
-    public class TaskUtils
+    public static class TaskUtils
     {
         private static ITask _completedTask;
         public static ITask CompletedTask => _completedTask ??= new AwaiterTask(new Awaiter(true));
@@ -13,7 +13,7 @@ namespace Tasks
             return new AwaiterTask<T>(new Awaiter<T>(true, t));
         }
 
-        public static ITask<T> Timeout<T>(TimeoutData<T> data, ITask<T> task)
+        public static ITask<T> Timeout<T>(this ITask<T> task, TimeoutData<T> data)
         {
             async Task<T> Delay()
             {
@@ -27,11 +27,55 @@ namespace Tasks
             );
         }
 
-        public static ITask<bool> WaitTask<T>(ITask<T> task, T v)
+        public static ITask<T> Timeout<T>(this ITask<T> task, TimeoutData<T> data, Func<TimeSpan, bool> step)
+        {
+            async Task<T> Delay()
+            {
+                await Task.Delay(data.Time);
+                return data.Result;
+            }
+        
+            return WaitAny(
+                task,
+                WrapTask(Delay())
+            );
+        }
+
+        public static ITask Until(Func<bool> predicate, Action<Func<bool>> step)
+        {
+            var awaiter = new Awaiter();
+            step(() =>
+            {
+                if (!predicate()) return false;
+                awaiter.Complete();
+                return true;
+            });
+            return new AwaiterTask(awaiter);
+        }
+
+        public static ITask<bool> Wait<T>(ITask<T> task, T v)
         {
             var awaiter = new Awaiter<bool>();
             Wait(awaiter.Complete, task, v);
             return new AwaiterTask<bool>(awaiter);
+        }
+
+        public static ITask Wait(TimeSpan ts)
+        {
+            return WrapTask(Task.Delay(ts));
+        }
+
+        public static ITask Wait(TimeSpan ts, Action<Func<TimeSpan, bool>> step)
+        {
+            var awaiter = new Awaiter();
+            step(dt =>
+            {
+                ts -= dt;
+                if (ts > TimeSpan.Zero) return false;
+                awaiter.Complete();
+                return true;
+            });
+            return new AwaiterTask(awaiter);
         }
 
         public static async void Wait<T>(Action<bool> call, ITask<T> task, T v)
@@ -83,11 +127,36 @@ namespace Tasks
             return new AwaiterTask<T>(awaiter);
         }
 
+        public static ITask While(Func<bool> predicate, Action<Func<bool>> step)
+        {
+            var awaiter = new Awaiter();
+            step(() =>
+            {
+                if (predicate()) return false;
+                awaiter.Complete();
+                return true;
+            });
+            return new AwaiterTask(awaiter);
+        }
+
+        public static ITask WrapTask(Task task)
+        {
+            var awaiter = new Awaiter();
+            WrapTask(awaiter.Complete, task);
+            return new AwaiterTask(awaiter);
+        }
+
         public static ITask<T> WrapTask<T>(Task<T> task)
         {
             var awaiter = new Awaiter<T>();
             WrapTask(awaiter.Complete, task);
             return new AwaiterTask<T>(awaiter);
+        }
+
+        public static async void WrapTask(Action call, Task task)
+        {
+            await task;
+            call();
         }
 
         public static async void WrapTask<T>(Action<T> call, Task<T> task)
