@@ -8,6 +8,12 @@ namespace Tasks
         private static ITask _completedTask;
         public static ITask CompletedTask => _completedTask ??= new AwaiterTask(new Awaiter(true));
 
+        public static async void Continue(this ITask task, Action action)
+        {
+            await task;
+            action();
+        }
+
         public static ITask<T> FromResult<T>(T t)
         {
             return new AwaiterTask<T>(new Awaiter<T>(true, t));
@@ -44,8 +50,7 @@ namespace Tasks
         public static ITask<T> Wait<T>(ITask task, T v)
         {
             var awaiter = new Awaiter<T>();
-            if (task.GetAwaiter().IsCompleted) awaiter.Complete(v);
-            else task.GetAwaiter().OnCompleted(() => awaiter.Complete(v));
+            task.Continue(() => awaiter.Complete(v));
             return new AwaiterTask<T>(awaiter);
         }
 
