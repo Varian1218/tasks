@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Tasks
@@ -45,6 +47,13 @@ namespace Tasks
                 return true;
             });
             return new AwaiterTask(awaiter);
+        }
+
+        public static ITask<T> Wait<T>(IEnumerator<T> enumerator, Action<IEnumerator> step)
+        {
+            var awaiter = new Awaiter<T>();
+            step(Wrap(awaiter, enumerator));
+            return new AwaiterTask<T>(awaiter);
         }
 
         public static ITask<T> Wait<T>(ITask task, T v)
@@ -163,6 +172,12 @@ namespace Tasks
         public static async void WrapTask<T>(Action<T> call, Task<T> task)
         {
             call(await task);
+        }
+
+        public static IEnumerator Wrap<T>(IAwaiter<T> awaiter, IEnumerator<T> enumerator)
+        {
+            yield return enumerator;
+            awaiter.Complete(enumerator.Current);
         }
     }
 }
