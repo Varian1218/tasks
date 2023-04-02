@@ -49,10 +49,17 @@ namespace Tasks
             return new AwaiterTask(awaiter);
         }
 
+        public static ITask Wait(IEnumerator enumerator, Action<IEnumerator> step)
+        {
+            var awaiter = new Awaiter();
+            step(Wrap(awaiter.Complete, enumerator));
+            return new AwaiterTask(awaiter);
+        }
+
         public static ITask<T> Wait<T>(IEnumerator<T> enumerator, Action<IEnumerator> step)
         {
             var awaiter = new Awaiter<T>();
-            step(Wrap(awaiter, enumerator));
+            step(Wrap(awaiter.Complete, enumerator));
             return new AwaiterTask<T>(awaiter);
         }
 
@@ -174,10 +181,16 @@ namespace Tasks
             call(await task);
         }
 
-        public static IEnumerator Wrap<T>(IAwaiter<T> awaiter, IEnumerator<T> enumerator)
+        public static IEnumerator Wrap(Action complete, IEnumerator enumerator)
         {
             yield return enumerator;
-            awaiter.Complete(enumerator.Current);
+            complete();
+        }
+
+        public static IEnumerator Wrap<T>(Action<T> complete, IEnumerator<T> enumerator)
+        {
+            yield return enumerator;
+            complete(enumerator.Current);
         }
     }
 }
