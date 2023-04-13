@@ -1,6 +1,10 @@
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+
 namespace Tasks
 {
-    public interface ITask
+    [AsyncMethodBuilder(typeof(AsyncMethodBuilder))]
+    public interface ITask 
     {
         IAwaiter GetAwaiter();
     }
