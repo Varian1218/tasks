@@ -49,6 +49,18 @@ namespace Tasks
             return new AwaiterTask(awaiter);
         }
 
+        public static ITask Wait(Func<float, bool> func, Action<Func<float, bool>> step)
+        {
+            var awaiter = new Awaiter();
+            step(dt =>
+            {
+                if (!func(dt)) return false;
+                awaiter.Complete();
+                return true;
+            });
+            return new AwaiterTask(awaiter);
+        }
+
         public static ITask Wait(IEnumerator enumerator, Action<IEnumerator> step)
         {
             var awaiter = new Awaiter();
