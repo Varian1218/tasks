@@ -13,7 +13,7 @@ namespace Tasks
             where TAwaiter : INotifyCompletion
             where TStateMachine : IAsyncStateMachine
         {
-            throw new NotImplementedException(nameof(AwaitOnCompleted));
+            awaiter.OnCompleted(stateMachine.MoveNext);
         }
 
         public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(
@@ -23,7 +23,7 @@ namespace Tasks
             where TAwaiter : ICriticalNotifyCompletion
             where TStateMachine : IAsyncStateMachine
         {
-            throw new NotImplementedException(nameof(AwaitUnsafeOnCompleted));
+            awaiter.UnsafeOnCompleted(stateMachine.MoveNext);
         }
 
         public void SetException(Exception exception)
